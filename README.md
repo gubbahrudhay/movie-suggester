@@ -27,7 +27,7 @@
 
 ## 🧠 Tech Stack
 
-- **Frontend:** React 18, Vite, Vanilla CSS
+- **Frontend:** React, Vite, Vanilla CSS
 - **APIs:**
   1. [TMDB (The Movie Database)](https://developer.themoviedb.org/docs/getting-started) - Core movie data, genres, metadata.
   2. [Watchmode](https://api.watchmode.com/) - Streaming service availability and deep links.
@@ -42,8 +42,8 @@
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/movie-decider.git
-cd movie-decider
+git clone https://github.com/gubbahrudhay/movie-suggester.git
+cd movie-suggester
 ```
 
 ### 2. Install dependencies
