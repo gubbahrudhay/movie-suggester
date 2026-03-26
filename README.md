@@ -18,7 +18,7 @@ It shows trending movies, allows filtering by genre or rating, and even tells yo
 
 ## Tech Stack
 
-* **Frontend:** React
+* **Frontend:** HTML,CSS,JS
 * **APIs Used:**
 
   * TMDB (movie discovery & data)
