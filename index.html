@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Selector</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="Discover trending movies, filter by genre or rating, and find out where to watch them.">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="logo">
+                <h1>Movie<span>Selector</span></h1>
+            </div>
+            <div class="controls">
+                <select id="genre-filter" aria-label="Filter by Genre">
+                    <option value="">All Genres</option>
+                    <!-- Populated dynamically -->
+                </select>
+                <button id="top-rated-btn" class="btn">Top Rated (8+)</button>
+            </div>
+        </header>
+
+        <main>
+            <section id="movies-container" class="movies-grid">
+                <!-- Movie cards populated here -->
+            </section>
+            
+            <div id="loading" class="loading-state hidden">
+                <div class="spinner"></div>
+                <p>Loading movies...</p>
+            </div>
+            
+            <div id="error" class="error-state hidden">
+                <p>Failed to load movies. Please try again.</p>
+                <button id="retry-btn" class="btn">Retry</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Movie Modal -->
+    <div id="movie-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
