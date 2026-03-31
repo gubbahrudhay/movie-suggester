@@ -1,7 +1,7 @@
 // --- API Keys Configuration ---
 // Set these to test with the live APIs
-const TMDB_API_KEY = 'YOUR_TMDB_API_KEY_HERE';
-const WATCHMODE_API_KEY = 'YOUR_WATCHMODE_API_KEY_HERE';
+const TMDB_API_KEY = 'a5d4b434f63ca7bffac67c55c61bc9ce';
+const WATCHMODE_API_KEY = 'FoLFpbx6ILQ6y9cYJnqptXiDFjtY4mNyQ7GxQABG';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const WATCHMODE_BASE_URL = 'https://api.watchmode.com/v1';
@@ -41,7 +41,7 @@ function setupEventListeners() {
     });
 
     retryBtn.addEventListener('click', loadMovies);
-    
+
     closeModalBtn.addEventListener('click', closeModal);
     window.addEventListener('click', (e) => {
         if (e.target === movieModal) closeModal();
@@ -54,7 +54,7 @@ async function fetchGenres() {
         const response = await fetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
         if (!response.ok) throw new Error('Failed to fetch genres');
         const data = await response.json();
-        
+
         data.genres.forEach(genre => {
             const option = document.createElement('option');
             option.value = genre.id;
@@ -64,12 +64,12 @@ async function fetchGenres() {
     } catch (error) {
         console.warn('Genre fetch failed (missing/invalid API key). Using fallback genres.', error);
         const fallbackGenres = [
-            {id: 28, name: "Action"},
-            {id: 35, name: "Comedy"},
-            {id: 18, name: "Drama"},
-            {id: 878, name: "Science Fiction"},
-            {id: 12, name: "Adventure"},
-            {id: 16, name: "Animation"}
+            { id: 28, name: "Action" },
+            { id: 35, name: "Comedy" },
+            { id: 18, name: "Drama" },
+            { id: 878, name: "Science Fiction" },
+            { id: 12, name: "Adventure" },
+            { id: 16, name: "Animation" }
         ];
         fallbackGenres.forEach(genre => {
             const option = document.createElement('option');
@@ -99,17 +99,17 @@ async function loadMovies() {
 // Apply Filters
 function applyFilters() {
     let filtered = allMovies;
-    
+
     // Genre Filter
     if (currentFilter.genre) {
         filtered = filtered.filter(m => m.genre_ids.includes(parseInt(currentFilter.genre)));
     }
-    
+
     // Top Rated Filter (8.0 or higher)
     if (currentFilter.topRated) {
         filtered = filtered.filter(m => m.vote_average >= 8.0);
     }
-    
+
     renderMovies(filtered);
 }
 
@@ -117,7 +117,7 @@ function applyFilters() {
 function renderMovies(movies) {
     moviesContainer.innerHTML = '';
     hideLoading();
-    
+
     if (movies.length === 0) {
         moviesContainer.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 4rem 2rem;">
@@ -130,14 +130,14 @@ function renderMovies(movies) {
         const card = document.createElement('div');
         card.className = 'movie-card';
         card.onclick = () => openModal(movie);
-        
+
         const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
-        const posterHTML = posterUrl 
+        const posterHTML = posterUrl
             ? `<div class="movie-poster-container"><img src="${posterUrl}" alt="${movie.title}" class="movie-poster" loading="lazy"></div>`
             : `<div class="movie-poster-container"><div class="no-poster">No Image</div></div>`;
 
         const ratingHTML = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
-        const yearHTML = movie.release_date ? movie.release_date.substring(0,4) : 'N/A';
+        const yearHTML = movie.release_date ? movie.release_date.substring(0, 4) : 'N/A';
 
         card.innerHTML = `
             ${posterHTML}
@@ -174,7 +174,7 @@ function openModal(movie) {
     const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '';
     const ratingHTML = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
     const dateHTML = movie.release_date || 'Unknown Date';
-    
+
     modalBody.innerHTML = `
         <div class="modal-body-inner">
             ${posterUrl ? `<img src="${posterUrl}" alt="${movie.title}" class="modal-poster">` : `<div class="modal-poster no-poster" style="background:var(--bg-color);display:flex;align-items:center;justify-content:center;">No Image</div>`}
@@ -195,9 +195,9 @@ function openModal(movie) {
             </div>
         </div>
     `;
-    
+
     movieModal.classList.remove('hidden');
-    
+
     // Fetch streaming info
     fetchWatchProviders(movie);
 }
@@ -209,21 +209,21 @@ function closeModal() {
 // Fetch Watch Providers (Watchmode)
 async function fetchWatchProviders(movie) {
     const container = document.getElementById('providers-container');
-    
+
     try {
         const url = `${WATCHMODE_BASE_URL}/title/movie-${movie.id}/sources/?apiKey=${WATCHMODE_API_KEY}`;
         const response = await fetch(url);
-        
+
         if (!response.ok) throw new Error('Failed to fetch streaming providers');
         const data = await response.json();
-        
+
         // Filter unique flatrate streaming platforms (subscriptions)
         const streamSources = data.filter(source => source.type === 'sub');
-        
+
         // Deduplicate streaming services by name
         const uniqueSources = [];
         streamSources.forEach(src => {
-            if(!uniqueSources.some(u => u.name === src.name)) {
+            if (!uniqueSources.some(u => u.name === src.name)) {
                 uniqueSources.push(src);
             }
         });
