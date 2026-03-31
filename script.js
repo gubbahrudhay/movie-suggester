@@ -17,8 +17,12 @@ const movieModal = document.getElementById('movie-modal');
 const modalBody = document.getElementById('modal-body');
 const closeModalBtn = document.querySelector('.close-btn');
 
+// Search and Sort DOM Elements
+const searchInput = document.getElementById('search-input');
+const sortFilter = document.getElementById('sort-filter');
+
 let allMovies = [];
-let currentFilter = { genre: '', topRated: false };
+let currentFilter = { query: '', sort: 'default', genre: '', topRated: false };
 
 // Initialize App
 async function initApp() {
@@ -29,6 +33,25 @@ async function initApp() {
 
 // Event Listeners
 function setupEventListeners() {
+    // Input event for the search bar (with debouncing for API calls)
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        currentFilter.query = e.target.value.trim();
+        
+        // We use a small delay (debounce) before making the API call
+        // so we don't bombard TMDB's servers with requests on every single keystroke.
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadMovies(currentFilter.query);
+        }, 500);
+    });
+
+    // Change event for the sort dropdown
+    sortFilter.addEventListener('change', (e) => {
+        currentFilter.sort = e.target.value;
+        applyFilters();
+    });
+
     genreFilter.addEventListener('change', (e) => {
         currentFilter.genre = e.target.value;
         applyFilters();
@@ -55,14 +78,13 @@ async function fetchGenres() {
         if (!response.ok) throw new Error('Failed to fetch genres');
         const data = await response.json();
 
-        data.genres.forEach(genre => {
-            const option = document.createElement('option');
-            option.value = genre.id;
-            option.textContent = genre.name;
-            genreFilter.appendChild(option);
-        });
+        // Using map() and join() instead of loops to render genres
+        genreFilter.innerHTML += data.genres.map(genre => 
+            `<option value="${genre.id}">${genre.name}</option>`
+        ).join('');
+        
     } catch (error) {
-        console.warn('Genre fetch failed (missing/invalid API key). Using fallback genres.', error);
+        console.warn('Genre fetch failed. Using fallback genres.', error);
         const fallbackGenres = [
             { id: 28, name: "Action" },
             { id: 35, name: "Comedy" },
@@ -71,86 +93,122 @@ async function fetchGenres() {
             { id: 12, name: "Adventure" },
             { id: 16, name: "Animation" }
         ];
-        fallbackGenres.forEach(genre => {
-            const option = document.createElement('option');
-            option.value = genre.id;
-            option.textContent = genre.name;
-            genreFilter.appendChild(option);
-        });
+        
+        // Using map() and join()
+        genreFilter.innerHTML += fallbackGenres.map(genre => 
+            `<option value="${genre.id}">${genre.name}</option>`
+        ).join('');
     }
 }
 
-// Fetch Trending Movies
-async function loadMovies() {
+let fetchController = null;
+
+// Fetch Movies (Trending or Search Query)
+async function loadMovies(query = '') {
     showLoading();
+    
+    // Abort previous pending fetch if typing fast
+    if (fetchController) fetchController.abort();
+    fetchController = new AbortController();
+    
     try {
-        const response = await fetch(`${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}`);
+        let url = `${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}`;
+        // If query exists, ping the official searching API so we check ALL of TMDB!
+        if (query) {
+            url = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+        }
+
+        const response = await fetch(url, { signal: fetchController.signal });
         if (!response.ok) throw new Error('API Key missing or invalid');
         const data = await response.json();
         allMovies = data.results;
         applyFilters();
     } catch (error) {
-        console.warn('Movie fetch failed (missing/invalid API key). Using mock data.', error);
+        if (error.name === 'AbortError') return; // Cancelled request
+        console.warn('Movie fetch failed. Using mock data.', error);
         allMovies = getMockMovies();
         applyFilters();
     }
 }
 
-// Apply Filters
+// HIGHER-ORDER FUNCTIONS IN ACTION: SEARCHING, FILTERING AND SORTING
 function applyFilters() {
-    let filtered = allMovies;
+    let processedMovies = allMovies;
 
-    // Genre Filter
+    // 1. SEARCHING: Using Array.prototype.filter()
+    if (currentFilter.query) {
+        processedMovies = processedMovies.filter(movie => 
+            movie.title.toLowerCase().includes(currentFilter.query.toLowerCase())
+        );
+    }
+
+    // 2. FILTERING (Genre): Using Array.prototype.filter()
     if (currentFilter.genre) {
-        filtered = filtered.filter(m => m.genre_ids.includes(parseInt(currentFilter.genre)));
+        processedMovies = processedMovies.filter(movie => 
+            movie.genre_ids.includes(parseInt(currentFilter.genre))
+        );
     }
 
-    // Top Rated Filter (8.0 or higher)
+    // 3. FILTERING (Rating): Using Array.prototype.filter()
     if (currentFilter.topRated) {
-        filtered = filtered.filter(m => m.vote_average >= 8.0);
+        processedMovies = processedMovies.filter(movie => 
+            movie.vote_average >= 8.0
+        );
     }
 
-    renderMovies(filtered);
+    // 4. SORTING: Using Array.prototype.sort()
+    // Spread operator used to avoid mutating the original array accidentally
+    if (currentFilter.sort === 'rating_desc') {
+        processedMovies = [...processedMovies].sort((a, b) => b.vote_average - a.vote_average);
+    } else if (currentFilter.sort === 'rating_asc') {
+        processedMovies = [...processedMovies].sort((a, b) => a.vote_average - b.vote_average);
+    }
+
+    renderMovies(processedMovies);
+}
+
+// Find specific movie by ID (Using Array.prototype.find)
+function openModalById(id) {
+    const movie = allMovies.find(m => m.id === id);
+    if (movie) openModal(movie);
 }
 
 // Render Movies to the DOM
 function renderMovies(movies) {
-    moviesContainer.innerHTML = '';
-    hideLoading();
-
     if (movies.length === 0) {
         moviesContainer.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 4rem 2rem;">
+            <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 4rem 2rem;">
                 <p style="font-size: 1.2rem;">No movies found matching your criteria.</p>
             </div>`;
+        hideLoading();
         return;
     }
 
-    movies.forEach(movie => {
-        const card = document.createElement('div');
-        card.className = 'movie-card';
-        card.onclick = () => openModal(movie);
-
+    // Creating DOM elements utilizing Array.prototype.map and Array.prototype.join
+    moviesContainer.innerHTML = movies.map(movie => {
         const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
-        const posterHTML = posterUrl
+        const posterHTML = posterUrl 
             ? `<div class="movie-poster-container"><img src="${posterUrl}" alt="${movie.title}" class="movie-poster" loading="lazy"></div>`
             : `<div class="movie-poster-container"><div class="no-poster">No Image</div></div>`;
-
+            
         const ratingHTML = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
-        const yearHTML = movie.release_date ? movie.release_date.substring(0, 4) : 'N/A';
+        const yearHTML = movie.release_date ? movie.release_date.substring(0,4) : 'N/A';
 
-        card.innerHTML = `
-            ${posterHTML}
-            <div class="movie-info">
-                <h3 class="movie-title" title="${movie.title}">${movie.title}</h3>
-                <div class="movie-meta">
-                    <span class="rating">⭐ ${ratingHTML}</span>
-                    <span class="year">${yearHTML}</span>
+        return `
+            <div class="movie-card" onclick="openModalById(${movie.id})">
+                ${posterHTML}
+                <div class="movie-info">
+                    <h3 class="movie-title" title="${movie.title}">${movie.title}</h3>
+                    <div class="movie-meta">
+                        <span class="rating">⭐ ${ratingHTML}</span>
+                        <span class="year">${yearHTML}</span>
+                    </div>
                 </div>
             </div>
         `;
-        moviesContainer.appendChild(card);
-    });
+    }).join('');
+    
+    hideLoading();
 }
 
 // UI States
@@ -174,10 +232,10 @@ function openModal(movie) {
     const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '';
     const ratingHTML = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
     const dateHTML = movie.release_date || 'Unknown Date';
-
+    
     modalBody.innerHTML = `
         <div class="modal-body-inner">
-            ${posterUrl ? `<img src="${posterUrl}" alt="${movie.title}" class="modal-poster">` : `<div class="modal-poster no-poster" style="background:var(--bg-color);display:flex;align-items:center;justify-content:center;">No Image</div>`}
+            ${posterUrl ? `<img src="${posterUrl}" alt="${movie.title}" class="modal-poster">` : `<div class="modal-poster no-poster" style="background:#000;display:flex;align-items:center;justify-content:center;">No Image</div>`}
             <div class="modal-details">
                 <h2 class="modal-title">${movie.title}</h2>
                 <div class="modal-meta">
@@ -195,9 +253,9 @@ function openModal(movie) {
             </div>
         </div>
     `;
-
+    
     movieModal.classList.remove('hidden');
-
+    
     // Fetch streaming info
     fetchWatchProviders(movie);
 }
@@ -209,25 +267,25 @@ function closeModal() {
 // Fetch Watch Providers (Watchmode)
 async function fetchWatchProviders(movie) {
     const container = document.getElementById('providers-container');
-
+    
     try {
         const url = `${WATCHMODE_BASE_URL}/title/movie-${movie.id}/sources/?apiKey=${WATCHMODE_API_KEY}`;
         const response = await fetch(url);
-
+        
         if (!response.ok) throw new Error('Failed to fetch streaming providers');
         const data = await response.json();
-
-        // Filter unique flatrate streaming platforms (subscriptions)
+        
+        // HIGHER-ORDER FUNCTION: Filtering subscription based sources
         const streamSources = data.filter(source => source.type === 'sub');
+        
+        // HIGHER-ORDER FUNCTION: Reduce and Find to deduplicate services by name
+        const uniqueSources = streamSources.reduce((acc, currentSource) => {
+            const alreadyExists = acc.find(item => item.name === currentSource.name);
+            if (!alreadyExists) acc.push(currentSource);
+            return acc;
+        }, []);
 
-        // Deduplicate streaming services by name
-        const uniqueSources = [];
-        streamSources.forEach(src => {
-            if (!uniqueSources.some(u => u.name === src.name)) {
-                uniqueSources.push(src);
-            }
-        });
-
+        // HIGHER-ORDER FUNCTION: Mapping resulting unique services into UI
         if (uniqueSources.length > 0) {
             container.innerHTML = `
                 <div class="providers-list">
@@ -237,14 +295,14 @@ async function fetchWatchProviders(movie) {
                 </div>
             `;
         } else {
-            container.innerHTML = `<p style="color: var(--text-muted);">No subscription streaming sources available currently.</p>`;
+            container.innerHTML = `<p style="color: #94a3b8;">No subscription streaming sources available currently.</p>`;
         }
     } catch (error) {
-        console.warn('Watchmode fetch failed (missing/invalid API key).', error);
+        console.warn('Watchmode fetch failed.', error);
         container.innerHTML = `
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 8px;">
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.5rem;">Streaming data unavailable.</p>
-                <p style="color: #64748b; font-size: 0.85rem;">(Requires a valid Watchmode API key in script.js)</p>
+            <div style="background: #1e293b; padding: 1rem; border-radius: 8px;">
+                <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 0.5rem;">Streaming data unavailable.</p>
+                <p style="color: #64748b; font-size: 0.85rem;">(Requires a valid Watchmode API key)</p>
             </div>
         `;
     }
@@ -283,7 +341,7 @@ function getMockMovies() {
         {
             id: 1011985,
             title: "Kung Fu Panda 4",
-            overview: "Po is gearing up to become the spiritual leader of his Valley of Peace, but also needs someone to take his place as Dragon Warrior. As such, he will train a new kung fu practitioner for the spot...",
+            overview: "Po is gearing up to become the spiritual leader of his Valley of Peace, but also needs someone to take his place as Dragon Warrior.",
             poster_path: "/kDp1vUBnMpe8ak4rjgl3cLELqjU.jpg",
             vote_average: 7.1,
             release_date: "2024-03-02",
@@ -301,29 +359,11 @@ function getMockMovies() {
         {
             id: 792307,
             title: "Poor Things",
-            overview: "Brought back to life by an unorthodox scientist, a young woman runs off with a debauched lawyer on a whirlwind adventure across the continents. Free from the prejudices of her times, she grows steadfast in her purpose to stand for equality and liberation.",
+            overview: "Brought back to life by an unorthodox scientist, a young woman runs off with a debauched lawyer on a whirlwind adventure across the continents.",
             poster_path: "/kCGlIMHnOm8PhbO3VFcGHcleswQ.jpg",
             vote_average: 7.8,
             release_date: "2023-12-07",
             genre_ids: [35, 878, 18]
-        },
-        {
-            id: 1096197,
-            title: "No Way Up",
-            overview: "Characters from different backgrounds are thrown together when the plane they're travelling on crashes into the Pacific Ocean. A nightmare fight for survival ensues with the air supply running out and dangers creeping in from all sides.",
-            poster_path: "/hu40Uxp9WtpL34jv3zyWLb5zEVY.jpg",
-            vote_average: 6.4,
-            release_date: "2024-01-18",
-            genre_ids: [28, 18, 53]
-        },
-        {
-            id: 1041613,
-            title: "Immaculate",
-            overview: "An American nun embarks on a new journey when she joins a remote convent in the Italian countryside. However, her warm welcome quickly turns into a living nightmare when she discovers her new home hides a sinister secret.",
-            poster_path: "/fdZpvZcgv00AMoX0zSWRK2pQmyP.jpg",
-            vote_average: 6.3,
-            release_date: "2024-03-20",
-            genre_ids: [27, 53]
         }
     ];
 }

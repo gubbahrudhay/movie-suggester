@@ -16,6 +16,12 @@
                 <h1>Movie<span>Selector</span></h1>
             </div>
             <div class="controls">
+                <input type="text" id="search-input" placeholder="Search movies..." autocomplete="off">
+                <select id="sort-filter" aria-label="Sort by">
+                    <option value="default">Default Sort</option>
+                    <option value="rating_desc">Rating: High to Low</option>
+                    <option value="rating_asc">Rating: Low to High</option>
+                </select>
                 <select id="genre-filter" aria-label="Filter by Genre">
                     <option value="">All Genres</option>
                     <!-- Populated dynamically -->
