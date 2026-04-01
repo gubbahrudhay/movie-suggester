@@ -101,7 +101,6 @@ select option {
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s ease;
-    cursor: pointer;
     position: relative;
     display: flex;
     flex-direction: column;

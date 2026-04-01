@@ -1,176 +1,40 @@
 // --- API Keys Configuration ---
 // Set these to test with the live APIs
 const TMDB_API_KEY = 'a5d4b434f63ca7bffac67c55c61bc9ce';
-const WATCHMODE_API_KEY = 'FoLFpbx6ILQ6y9cYJnqptXiDFjtY4mNyQ7GxQABG';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-const WATCHMODE_BASE_URL = 'https://api.watchmode.com/v1';
 
 // DOM Elements
 const moviesContainer = document.getElementById('movies-container');
-const genreFilter = document.getElementById('genre-filter');
-const topRatedBtn = document.getElementById('top-rated-btn');
 const loadingState = document.getElementById('loading');
 const errorState = document.getElementById('error');
 const retryBtn = document.getElementById('retry-btn');
-const movieModal = document.getElementById('movie-modal');
-const modalBody = document.getElementById('modal-body');
-const closeModalBtn = document.querySelector('.close-btn');
-
-// Search and Sort DOM Elements
-const searchInput = document.getElementById('search-input');
-const sortFilter = document.getElementById('sort-filter');
 
 let allMovies = [];
-let currentFilter = { query: '', sort: 'default', genre: '', topRated: false };
 
 // Initialize App
 async function initApp() {
-    setupEventListeners();
-    await fetchGenres();
+    retryBtn.addEventListener('click', loadMovies);
     await loadMovies();
 }
 
-// Event Listeners
-function setupEventListeners() {
-    // Input event for the search bar (with debouncing for API calls)
-    let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        currentFilter.query = e.target.value.trim();
-        
-        // We use a small delay (debounce) before making the API call
-        // so we don't bombard TMDB's servers with requests on every single keystroke.
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            loadMovies(currentFilter.query);
-        }, 500);
-    });
-
-    // Change event for the sort dropdown
-    sortFilter.addEventListener('change', (e) => {
-        currentFilter.sort = e.target.value;
-        applyFilters();
-    });
-
-    genreFilter.addEventListener('change', (e) => {
-        currentFilter.genre = e.target.value;
-        applyFilters();
-    });
-
-    topRatedBtn.addEventListener('click', () => {
-        currentFilter.topRated = !currentFilter.topRated;
-        topRatedBtn.classList.toggle('active');
-        applyFilters();
-    });
-
-    retryBtn.addEventListener('click', loadMovies);
-
-    closeModalBtn.addEventListener('click', closeModal);
-    window.addEventListener('click', (e) => {
-        if (e.target === movieModal) closeModal();
-    });
-}
-
-// Fetch Genres from TMDB
-async function fetchGenres() {
-    try {
-        const response = await fetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
-        if (!response.ok) throw new Error('Failed to fetch genres');
-        const data = await response.json();
-
-        // Using map() and join() instead of loops to render genres
-        genreFilter.innerHTML += data.genres.map(genre => 
-            `<option value="${genre.id}">${genre.name}</option>`
-        ).join('');
-        
-    } catch (error) {
-        console.warn('Genre fetch failed. Using fallback genres.', error);
-        const fallbackGenres = [
-            { id: 28, name: "Action" },
-            { id: 35, name: "Comedy" },
-            { id: 18, name: "Drama" },
-            { id: 878, name: "Science Fiction" },
-            { id: 12, name: "Adventure" },
-            { id: 16, name: "Animation" }
-        ];
-        
-        // Using map() and join()
-        genreFilter.innerHTML += fallbackGenres.map(genre => 
-            `<option value="${genre.id}">${genre.name}</option>`
-        ).join('');
-    }
-}
-
-let fetchController = null;
-
-// Fetch Movies (Trending or Search Query)
-async function loadMovies(query = '') {
+// Fetch Movies (Trending)
+async function loadMovies() {
     showLoading();
     
-    // Abort previous pending fetch if typing fast
-    if (fetchController) fetchController.abort();
-    fetchController = new AbortController();
-    
     try {
-        let url = `${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}`;
-        // If query exists, ping the official searching API so we check ALL of TMDB!
-        if (query) {
-            url = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
-        }
+        const url = `${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}`;
 
-        const response = await fetch(url, { signal: fetchController.signal });
+        const response = await fetch(url);
         if (!response.ok) throw new Error('API Key missing or invalid');
         const data = await response.json();
         allMovies = data.results;
-        applyFilters();
+        renderMovies(allMovies);
     } catch (error) {
-        if (error.name === 'AbortError') return; // Cancelled request
         console.warn('Movie fetch failed. Using mock data.', error);
         allMovies = getMockMovies();
-        applyFilters();
+        renderMovies(allMovies);
     }
-}
-
-// HIGHER-ORDER FUNCTIONS IN ACTION: SEARCHING, FILTERING AND SORTING
-function applyFilters() {
-    let processedMovies = allMovies;
-
-    // 1. SEARCHING: Using Array.prototype.filter()
-    if (currentFilter.query) {
-        processedMovies = processedMovies.filter(movie => 
-            movie.title.toLowerCase().includes(currentFilter.query.toLowerCase())
-        );
-    }
-
-    // 2. FILTERING (Genre): Using Array.prototype.filter()
-    if (currentFilter.genre) {
-        processedMovies = processedMovies.filter(movie => 
-            movie.genre_ids.includes(parseInt(currentFilter.genre))
-        );
-    }
-
-    // 3. FILTERING (Rating): Using Array.prototype.filter()
-    if (currentFilter.topRated) {
-        processedMovies = processedMovies.filter(movie => 
-            movie.vote_average >= 8.0
-        );
-    }
-
-    // 4. SORTING: Using Array.prototype.sort()
-    // Spread operator used to avoid mutating the original array accidentally
-    if (currentFilter.sort === 'rating_desc') {
-        processedMovies = [...processedMovies].sort((a, b) => b.vote_average - a.vote_average);
-    } else if (currentFilter.sort === 'rating_asc') {
-        processedMovies = [...processedMovies].sort((a, b) => a.vote_average - b.vote_average);
-    }
-
-    renderMovies(processedMovies);
-}
-
-// Find specific movie by ID (Using Array.prototype.find)
-function openModalById(id) {
-    const movie = allMovies.find(m => m.id === id);
-    if (movie) openModal(movie);
 }
 
 // Render Movies to the DOM
@@ -178,7 +42,7 @@ function renderMovies(movies) {
     if (movies.length === 0) {
         moviesContainer.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 4rem 2rem;">
-                <p style="font-size: 1.2rem;">No movies found matching your criteria.</p>
+                <p style="font-size: 1.2rem;">No movies found.</p>
             </div>`;
         hideLoading();
         return;
@@ -195,7 +59,7 @@ function renderMovies(movies) {
         const yearHTML = movie.release_date ? movie.release_date.substring(0,4) : 'N/A';
 
         return `
-            <div class="movie-card" onclick="openModalById(${movie.id})">
+            <div class="movie-card">
                 ${posterHTML}
                 <div class="movie-info">
                     <h3 class="movie-title" title="${movie.title}">${movie.title}</h3>
@@ -225,87 +89,6 @@ function hideLoading() {
 function showError() {
     loadingState.classList.add('hidden');
     errorState.classList.remove('hidden');
-}
-
-// Modal Logic
-function openModal(movie) {
-    const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '';
-    const ratingHTML = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
-    const dateHTML = movie.release_date || 'Unknown Date';
-    
-    modalBody.innerHTML = `
-        <div class="modal-body-inner">
-            ${posterUrl ? `<img src="${posterUrl}" alt="${movie.title}" class="modal-poster">` : `<div class="modal-poster no-poster" style="background:#000;display:flex;align-items:center;justify-content:center;">No Image</div>`}
-            <div class="modal-details">
-                <h2 class="modal-title">${movie.title}</h2>
-                <div class="modal-meta">
-                    <span class="rating">⭐ ${ratingHTML}</span>
-                    <span class="date">📅 ${dateHTML}</span>
-                </div>
-                <p class="synopsis">${movie.overview || 'No synopsis available for this title.'}</p>
-                
-                <div class="watch-providers">
-                    <h3>Where to Watch</h3>
-                    <div id="providers-container">
-                        <div class="spinner" style="width: 28px; height: 28px; border-width: 3px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    movieModal.classList.remove('hidden');
-    
-    // Fetch streaming info
-    fetchWatchProviders(movie);
-}
-
-function closeModal() {
-    movieModal.classList.add('hidden');
-}
-
-// Fetch Watch Providers (Watchmode)
-async function fetchWatchProviders(movie) {
-    const container = document.getElementById('providers-container');
-    
-    try {
-        const url = `${WATCHMODE_BASE_URL}/title/movie-${movie.id}/sources/?apiKey=${WATCHMODE_API_KEY}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('Failed to fetch streaming providers');
-        const data = await response.json();
-        
-        // HIGHER-ORDER FUNCTION: Filtering subscription based sources
-        const streamSources = data.filter(source => source.type === 'sub');
-        
-        // HIGHER-ORDER FUNCTION: Reduce and Find to deduplicate services by name
-        const uniqueSources = streamSources.reduce((acc, currentSource) => {
-            const alreadyExists = acc.find(item => item.name === currentSource.name);
-            if (!alreadyExists) acc.push(currentSource);
-            return acc;
-        }, []);
-
-        // HIGHER-ORDER FUNCTION: Mapping resulting unique services into UI
-        if (uniqueSources.length > 0) {
-            container.innerHTML = `
-                <div class="providers-list">
-                    ${uniqueSources.map(p => `
-                        <div class="genre-tag" title="Watch on ${p.name}">${p.name}</div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            container.innerHTML = `<p style="color: #94a3b8;">No subscription streaming sources available currently.</p>`;
-        }
-    } catch (error) {
-        console.warn('Watchmode fetch failed.', error);
-        container.innerHTML = `
-            <div style="background: #1e293b; padding: 1rem; border-radius: 8px;">
-                <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 0.5rem;">Streaming data unavailable.</p>
-                <p style="color: #64748b; font-size: 0.85rem;">(Requires a valid Watchmode API key)</p>
-            </div>
-        `;
-    }
 }
 
 // Mock Data (Used as fallback if API calls fail)

@@ -15,19 +15,7 @@
             <div class="logo">
                 <h1>Movie<span>Selector</span></h1>
             </div>
-            <div class="controls">
-                <input type="text" id="search-input" placeholder="Search movies..." autocomplete="off">
-                <select id="sort-filter" aria-label="Sort by">
-                    <option value="default">Default Sort</option>
-                    <option value="rating_desc">Rating: High to Low</option>
-                    <option value="rating_asc">Rating: Low to High</option>
-                </select>
-                <select id="genre-filter" aria-label="Filter by Genre">
-                    <option value="">All Genres</option>
-                    <!-- Populated dynamically -->
-                </select>
-                <button id="top-rated-btn" class="btn">Top Rated (8+)</button>
-            </div>
+
         </header>
 
         <main>
@@ -47,13 +35,6 @@
         </main>
     </div>
 
-    <!-- Movie Modal -->
-    <div id="movie-modal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <div id="modal-body"></div>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
