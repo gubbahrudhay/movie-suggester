@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Selector</title>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <meta name="description" content="Discover trending movies, filter by genre or rating, and find out where to watch them.">
@@ -15,12 +14,25 @@
             <div class="logo">
                 <h1>Movie<span>Selector</span></h1>
             </div>
-
+            <div class="controls">
+                <input type="text" id="search-input" placeholder="Search movies...">
+                <select id="filter-select">
+                    <option value="all">All Ratings</option>
+                    <option value="high">Rating > 7.0</option>
+                    <option value="medium">Rating > 5.0</option>
+                </select>
+                <select id="sort-select">
+                    <option value="default">Sort By</option>
+                    <option value="title-asc">Title (A-Z)</option>
+                    <option value="title-desc">Title (Z-A)</option>
+                    <option value="rating-desc">Rating (High to Low)</option>
+                    <option value="rating-asc">Rating (Low to High)</option>
+                </select>
+            </div>
         </header>
 
         <main>
             <section id="movies-container" class="movies-grid">
-                <!-- Movie cards populated here -->
             </section>
             
             <div id="loading" class="loading-state hidden">
@@ -35,6 +47,12 @@
         </main>
     </div>
 
+    <div id="movie-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <div class="modal-body-inner" id="modal-body"></div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
