@@ -62,7 +62,7 @@ https://api.watchmode.com/v1
 
 ## Demo
 
-Live Demo: 
+Live Demo: https://movie-suggester-8c8z.vercel.app/
 GitHub Repo: https://github.com/gubbahrudhay/movie-suggester.git
 
 ---
