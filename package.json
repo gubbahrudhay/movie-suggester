@@ -1,0 +1,26 @@
+{
+  "name": "movie-suggester",
+  "version": "1.0.0",
+  "description": "A smart movie discovery app for people who *can’t decide what to watch*. It shows trending movies, allows filtering by genre or rating, and even tells you **where to watch**.",
+  "main": "config.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gubbahrudhay/movie-suggester.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gubbahrudhay/movie-suggester/issues"
+  },
+  "homepage": "https://github.com/gubbahrudhay/movie-suggester#readme",
+  "devDependencies": {
+    "vite": "^8.0.8"
+  }
+}

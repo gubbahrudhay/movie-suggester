@@ -5,9 +5,9 @@
 }
 
 body {
-    background-color: #000000;
-    color: #f8fafc;
-    font-family: 'Outfit', sans-serif;
+    background-color: black;
+    color: white;
+    font-family: 'Times New Roman', Times, serif;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -33,61 +33,37 @@ header {
     letter-spacing: -1px;
 }
 
-.logo h1 span {
-    color: #e50914;
-}
-
 .controls {
     display: flex;
     gap: 1rem;
     align-items: center;
 }
 
-select, input[type="text"] {
+select,
+input[type="text"] {
     padding: 0.75rem 1rem;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
+    background: white;
+    color: black;
     border-radius: 8px;
-    font-family: inherit;
     font-size: 1rem;
     outline: none;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
-select:hover, input[type="text"]:focus {
-    border-color: #e50914;
-}
-
-select option {
-    background: #1e293b;
-    color: #f8fafc;
-}
 
 .btn {
     padding: 0.75rem 1.5rem;
-    background: #1e293b;
+    background: black;
     color: #f8fafc;
-    border: 1px solid #334155;
     border-radius: 8px;
-    font-family: inherit;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.btn:hover {
-    background: #334155;
-    border-color: #e50914;
-}
 
-.btn.active {
-    background: #e50914;
-    color: white;
-    border-color: #e50914;
-}
 
 .movies-grid {
     display: grid;
@@ -96,8 +72,8 @@ select option {
 }
 
 .movie-card {
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: rgba(0, 0, 0, 0.614);
+    border: 1px solid white;
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s ease;
@@ -108,7 +84,6 @@ select option {
 
 .movie-card:hover {
     transform: translateY(-8px);
-    border-color: #e50914;
 }
 
 .movie-poster-container {
@@ -116,7 +91,7 @@ select option {
     aspect-ratio: 2/3;
     overflow: hidden;
     position: relative;
-    background: #0f172a;
+    background: #060a14;
 }
 
 .movie-poster {
@@ -207,7 +182,8 @@ select option {
     display: none !important;
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
     text-align: center;
     padding: 5rem 2rem;
     display: flex;
@@ -228,7 +204,9 @@ select option {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .modal {
@@ -289,11 +267,15 @@ select option {
         flex-direction: column;
         align-items: flex-start;
     }
+
     .controls {
         width: 100%;
         flex-wrap: wrap;
     }
-    select, input[type="text"], .btn {
+
+    select,
+    input[type="text"],
+    .btn {
         flex-grow: 1;
     }
 }

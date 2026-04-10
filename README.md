@@ -37,7 +37,7 @@ Used for:
 * Genres
 * Ratings & posters
 
-https://developer.themoviedb.org/docs/getting-started
+https://api.themoviedb.org/3'
 
 ---
 
@@ -47,7 +47,7 @@ Used for:
 
 * Streaming platforms (Netflix, Prime, etc.)
 
-https://api.watchmode.com/
+https://api.watchmode.com/v1
 
 ---
 
@@ -55,7 +55,7 @@ https://api.watchmode.com/
 
 1. Fetch trending movies from TMDB
 2. Display them as cards
-3. Apply filters (genre / rating)
+3. Apply filters (rating)
 4. On selecting a movie → fetch streaming info from Watchmode
 
 ---

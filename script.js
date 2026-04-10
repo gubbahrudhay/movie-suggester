@@ -1,5 +1,9 @@
-const TMDB_API_KEY = 'a5d4b434f63ca7bffac67c55c61bc9ce';
+
+const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+const WATCHMODE_API_KEY = import.meta.env.VITE_WATCHMODE_API_KEY;
+const WATCHMODE_BASE_URL = 'https://api.watchmode.com/v1';
 
 const moviesContainer = document.getElementById('movies-container');
 const loadingState = document.getElementById('loading');
@@ -74,8 +78,6 @@ function applyFilters() {
     });
     
     processedMovies = processedMovies.sort((a, b) => {
-        if (sortValue === 'title-asc') return (a.title || '').localeCompare(b.title || '');
-        if (sortValue === 'title-desc') return (b.title || '').localeCompare(a.title || '');
         if (sortValue === 'rating-desc') return (b.vote_average || 0) - (a.vote_average || 0);
         if (sortValue === 'rating-asc') return (a.vote_average || 0) - (b.vote_average || 0);
         return 0;
@@ -138,7 +140,7 @@ function renderMovies(movies) {
                 <div class="movie-info">
                     <h3 class="movie-title" title="${movie.title}">${movie.title}</h3>
                     <div class="movie-meta">
-                        <span class="rating">⭐ ${ratingHTML}</span>
+                        <span class="rating">Rating: ${ratingHTML}</span>
                         <span class="year">${yearHTML}</span>
                     </div>
                     <div class="movie-actions">
@@ -165,15 +167,85 @@ function openModal(movie) {
         <div style="flex-grow: 1;">
             <div class="synopsis-title">${movie.title || 'No Title'}</div>
             <div style="color: #94a3b8; margin-bottom: 1rem; display: flex; gap: 1rem;">
-                <span style="color: #fbbf24; font-weight: 600;">⭐ ${movie.vote_average ? movie.vote_average.toFixed(1) : 'NR'}</span>
-                <span>${movie.release_date ? movie.release_date.substring(0, 4) : 'N/A'}</span>
+                <span style="color: #fbbf24;">Rating: ${movie.vote_average ? movie.vote_average.toFixed(1) : 'NR'}</span>
+                <span>Year: ${movie.release_date ? movie.release_date.substring(0, 4) : 'N/A'}</span>
             </div>
             <div class="synopsis-text">${movie.overview || 'No synopsis available.'}</div>
+            
+            <div id="streaming-sources-container" style="margin-top: 2rem;">
+                <h3 style="color: white; margin-bottom: 1rem; font-size: 1.25rem;">Where to Watch</h3>
+                <div id="streaming-sources-content" style="color: #94a3b8;">
+                    Loading availability...
+                </div>
+            </div>
         </div>
     `;
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    
+    fetchStreamingSources(movie.id);
 }
+
+async function fetchStreamingSources(tmdbId) {
+    const contentDiv = document.getElementById('streaming-sources-content');
+    if (!contentDiv) return;
+
+    try {
+        const watchmodeSearchUrl = `${WATCHMODE_BASE_URL}/search/?apiKey=${WATCHMODE_API_KEY}&search_field=tmdb_movie_id&search_value=${tmdbId}`;
+        const searchRes = await fetch(watchmodeSearchUrl);
+        if (!searchRes.ok) throw new Error('Search failed');
+        const searchData = await searchRes.json();
+        
+        let watchmodeId;
+        if (searchData.title_results && searchData.title_results.length > 0) {
+            watchmodeId = searchData.title_results[0].id;
+        } else {
+            contentDiv.innerHTML = 'Not available for streaming.';
+            return;
+        }
+
+        const sourcesUrl = `${WATCHMODE_BASE_URL}/title/${watchmodeId}/sources/?apiKey=${WATCHMODE_API_KEY}`;
+        const sourcesRes = await fetch(sourcesUrl);
+        if (!sourcesRes.ok) throw new Error('Sources failed');
+        const sourcesData = await sourcesRes.json();
+
+        if (sourcesData && sourcesData.length > 0) {
+            const uniqueSources = [];
+            const seen = new Set();
+            sourcesData.forEach(src => {
+                const uniqueKey = src.name + '-' + src.type;
+                if (!seen.has(uniqueKey)) {
+                    seen.add(uniqueKey);
+                    uniqueSources.push(src);
+                }
+            });
+
+            const badges = uniqueSources.map(src => {
+                let badgeColor = "black";
+                return `<a href="${src.web_url}" target="_blank" rel="noopener noreferrer" style="
+                    display: inline-block;
+                    background-color: ${badgeColor};
+                    color: white;
+                    padding: 0.35rem 0.85rem;
+                    border-radius: 999px;
+                    font-size: 0.875rem;
+                    text-decoration: none;
+                    margin-right: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    transition: opacity 0.2s;
+                ">${src.name} (${src.type === 'sub' ? 'Stream' : src.type})</a>`;
+            }).join('');
+
+            contentDiv.innerHTML = badges;
+        } else {
+            contentDiv.innerHTML = 'No streaming sources found.';
+        }
+    } catch (err) {
+        contentDiv.innerHTML = 'Failed to load streaming sources.';
+        console.error(err);
+    }
+}
+
 
 function closeModal() {
     modal.classList.add('hidden');
