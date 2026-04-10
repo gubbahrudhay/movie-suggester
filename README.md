@@ -37,7 +37,7 @@ Used for:
 * Genres
 * Ratings & posters
 
-https://api.themoviedb.org/3'
+https://api.themoviedb.org/3
 
 ---
 

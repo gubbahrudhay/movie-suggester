@@ -10,6 +10,7 @@ const loadingState = document.getElementById('loading');
 const errorState = document.getElementById('error');
 const retryBtn = document.getElementById('retry-btn');
 const searchInput = document.getElementById('search-input');
+const genreSelect = document.getElementById('genre-select');
 const filterSelect = document.getElementById('filter-select');
 const sortSelect = document.getElementById('sort-select');
 
@@ -23,6 +24,7 @@ let fetchTimeout;
 async function initApp() {
     retryBtn.addEventListener('click', loadMovies);
     searchInput.addEventListener('input', handleSearchInput);
+    genreSelect.addEventListener('change', applyFilters);
     filterSelect.addEventListener('change', applyFilters);
     sortSelect.addEventListener('change', applyFilters);
     moviesContainer.addEventListener('click', handleMovieClick);
@@ -30,7 +32,24 @@ async function initApp() {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
     });
+    await loadGenres();
     await loadMovies();
+}
+
+async function loadGenres() {
+    try {
+        const response = await fetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
+        if (!response.ok) throw new Error('API Error');
+        const data = await response.json();
+        data.genres.forEach(genre => {
+            const option = document.createElement('option');
+            option.value = genre.id;
+            option.textContent = genre.name;
+            genreSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Failed to load genres', error);
+    }
 }
 
 function handleSearchInput() {
@@ -64,12 +83,20 @@ async function fetchMoviesFromUrl(url) {
 
 function applyFilters() {
     const searchTerm = searchInput.value.toLowerCase();
+    const genreValue = genreSelect.value;
     const filterValue = filterSelect.value;
     const sortValue = sortSelect.value;
     
     let processedMovies = allMovies.filter(movie => 
         (movie.title || '').toLowerCase().includes(searchTerm)
     );
+    
+    if (genreValue !== 'all') {
+        const genreId = parseInt(genreValue);
+        processedMovies = processedMovies.filter(movie => 
+            movie.genre_ids && movie.genre_ids.includes(genreId)
+        );
+    }
     
     processedMovies = processedMovies.filter(movie => {
         if (filterValue === 'high') return movie.vote_average > 7.0;
